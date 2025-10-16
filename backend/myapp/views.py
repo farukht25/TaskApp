@@ -158,8 +158,8 @@ def _set_auth_cookies(resp, access_token: str, refresh_token: str):
 
     cookie_kwargs = {
         'httponly': True,
-        'samesite': 'Lax',
-        'secure': False,
+        'samesite': 'None',
+        'secure': True,
     }
     resp.set_cookie('access', access_token, max_age=60 * 60, **cookie_kwargs)
     resp.set_cookie('refresh', refresh_token, max_age=14 * 24 * 60 * 60, **cookie_kwargs)
