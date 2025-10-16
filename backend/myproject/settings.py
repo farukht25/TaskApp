@@ -168,8 +168,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 if not DEBUG:
     STORAGES = {
         "staticfiles": {
+            # Use manifest storage for cache-busting in production
             "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         }
     }
-    # Do not fail collectstatic if source maps referenced by vendor files are missing
+    # Keep non-strict in case third-party assets reference optional maps
     WHITENOISE_MANIFEST_STRICT = False
