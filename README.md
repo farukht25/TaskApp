@@ -19,13 +19,22 @@ python -m venv venv
 venv\Scripts\activate
 ```
 
-2) Install requirements
+2) Configure environment
+
+Copy the example env and set a strong secret key:
+
+```
+copy backend\.env.example backend\.env
+# then edit backend\.env and set DJANGO_SECRET_KEY
+```
+
+3) Install requirements
 
 ```
 pip install -r requirements.txt
 ```
 
-3) Migrate and run
+4) Migrate and run
 
 ```
 python manage.py migrate
@@ -100,4 +109,3 @@ pip-compile backend/requirements.in -o backend/requirements.txt
 - Serve over HTTPS and set cookies to `SameSite=None; Secure=True`
 - Harden CORS to exact origins
 - Consider Redis + Django Channels for WebSockets (if needed)
-

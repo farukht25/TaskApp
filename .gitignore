@@ -1,5 +1,7 @@
 # Environment
 .env
+backend/.env
+.env.example
 
 # Node
 frontend/node_modules/
@@ -10,6 +12,9 @@ backend/venv/
 __pycache__/
 *.pyc
 
+# SQLite DB (local dev only)
+*.sqlite3
+backend/db.sqlite3
+
 # Builds
 frontend/dist/
-
