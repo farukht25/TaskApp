@@ -12,6 +12,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
+from django.conf import settings
 
 from .models import Task
 from .serializers import UserSerializer, TaskSerializer
@@ -155,12 +156,19 @@ def current_user(request):
 
 
 def _set_auth_cookies(resp, access_token: str, refresh_token: str):
-
-    cookie_kwargs = {
-        'httponly': True,
-        'samesite': 'None',
-        'secure': True,
-    }
+    # In production (DEBUG=False), use Secure cookies and allow cross-site
+    if settings.DEBUG:
+        cookie_kwargs = {
+            'httponly': True,
+            'samesite': 'Lax',
+            'secure': False,
+        }
+    else:
+        cookie_kwargs = {
+            'httponly': True,
+            'samesite': 'None',
+            'secure': True,
+        }
     resp.set_cookie('access', access_token, max_age=60 * 60, **cookie_kwargs)
     resp.set_cookie('refresh', refresh_token, max_age=14 * 24 * 60 * 60, **cookie_kwargs)
 
