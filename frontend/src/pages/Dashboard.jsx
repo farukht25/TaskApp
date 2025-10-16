@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { listTasks } from "../api/tasks";
 import axios from "../api/axios";
+import { API_BASE } from "../api/axios";
 import "./dashboard.css";
 // Chart.js integration
 import {
@@ -66,7 +67,7 @@ function Dashboard() {
 
   // Subscribe to SSE and refresh metrics when tasks change
   useEffect(() => {
-    const url = `http://localhost:8000/tasks/stream/`;
+    const url = `${API_BASE}tasks/stream/`;
     const es = new EventSource(url, { withCredentials: true });
     es.onmessage = () => load();
     es.onerror = () => {};

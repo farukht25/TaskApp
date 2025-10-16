@@ -53,6 +53,13 @@ npm run dev
 
 Frontend runs at `http://localhost:5173/`.
 
+Set the API base for production builds:
+
+```
+# frontend/.env
+VITE_API_BASE=https://your-backend.example.com/
+```
+
 ## Auth Model
 
 - JWT access and refresh tokens are set as HttpOnly cookies on login/register.
@@ -109,3 +116,27 @@ pip-compile backend/requirements.in -o backend/requirements.txt
 - Serve over HTTPS and set cookies to `SameSite=None; Secure=True`
 - Harden CORS to exact origins
 - Consider Redis + Django Channels for WebSockets (if needed)
+
+## Deploy (Render + Netlify)
+
+Backend (Render):
+- Create a new Web Service from the `backend` folder.
+- Environment: Python 3.x
+- Build command:
+  - `pip install -r backend/requirements.txt && python backend/manage.py collectstatic --noinput && python backend/manage.py migrate`
+- Start command:
+  - `cd backend && gunicorn myproject.wsgi --workers=2 --timeout=120 --log-file -`
+- Env vars:
+  - `DJANGO_SECRET_KEY`=your-long-random
+  - `DJANGO_DEBUG`=false
+  - `DJANGO_ALLOWED_HOSTS`=<your_render_hostname>
+  - `CORS_ALLOWED_ORIGINS`=https://your-frontend-domain
+
+Frontend (Netlify/Vercel):
+- Build command: `npm run build`
+- Publish directory: `frontend/dist`
+- Env var:
+  - `VITE_API_BASE`=https://your-backend-domain/
+
+Cookie tips:
+- In production, the backend sets secure cookies if you set `DJANGO_DEBUG=false`. Ensure you are on HTTPS and that the frontend origin is listed in `CORS_ALLOWED_ORIGINS`.

@@ -21,8 +21,8 @@ MEDIA_DIR = os.path.join(BASE_DIR, "media")
 # SECURITY
 # -------------------------------------------------
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-insecure-change-me")
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() == "true"
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",")
 
 # -------------------------------------------------
 # APPLICATIONS
@@ -50,6 +50,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",  # CORS must come first
     "django.middleware.security.SecurityMiddleware",
+    # WhiteNoise added below only in production
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "myproject.middleware.JWTAuthCookieMiddleware",  # inject Authorization from access cookie
@@ -57,6 +58,10 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+# Add WhiteNoise middleware only when DEBUG is False (e.g., production)
+if not DEBUG:
+    MIDDLEWARE.insert(2, "whitenoise.middleware.WhiteNoiseMiddleware")
 
 # -------------------------------------------------
 # URLS / TEMPLATES / WSGI
@@ -114,6 +119,7 @@ USE_TZ = True
 # -------------------------------------------------
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [STATIC_DIR]
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = MEDIA_DIR
@@ -146,10 +152,8 @@ SIMPLE_JWT = {
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True  # allows sending cookies from React
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
+_cors_env = os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
+CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors_env.split(",") if o.strip()]
 
 # CSRF not needed with JWT
 CSRF_TRUSTED_ORIGINS = []
@@ -159,3 +163,11 @@ CSRF_COOKIE_SECURE = False  # not needed for JWT in dev
 # DEFAULT PRIMARY KEY FIELD
 # -------------------------------------------------
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# WhiteNoise storage in production
+if not DEBUG:
+    STORAGES = {
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        }
+    }

@@ -1,8 +1,10 @@
 //src/api/axios.js
 import axios from "axios";
 
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/";
+
 const instance = axios.create({
-  baseURL: "http://localhost:8000/",
+  baseURL: API_BASE,
   withCredentials: true,
 });
 
@@ -50,7 +52,7 @@ instance.interceptors.response.use(
 
       isRefreshing = true;
       try {
-        await axios.post("http://localhost:8000/auth/refresh/", {}, { withCredentials: true });
+        await axios.post(`${API_BASE}auth/refresh/`, {}, { withCredentials: true });
         isRefreshing = false;
         runPending(null);
         return instance(originalRequest);
@@ -67,3 +69,4 @@ instance.interceptors.response.use(
 );
 
 export default instance;
+export { API_BASE };

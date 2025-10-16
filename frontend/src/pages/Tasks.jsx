@@ -1,6 +1,7 @@
 // src/pages/Tasks.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { listTasks, createTask, updateTask, deleteTask } from "../api/tasks";
+import { API_BASE } from "../api/axios";
 
 const emptyForm = {
   title: "",
@@ -40,7 +41,7 @@ function Tasks() {
 
   // Subscribe to SSE for live updates; on event, re-load with current filters
   useEffect(() => {
-    const url = `http://localhost:8000/tasks/stream/`;
+    const url = `${API_BASE}tasks/stream/`;
     const es = new EventSource(url, { withCredentials: true });
     es.onmessage = () => {
       // simple approach: re-fetch using current filters
