@@ -171,3 +171,5 @@ if not DEBUG:
             "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         }
     }
+    # Do not fail collectstatic if source maps referenced by vendor files are missing
+    WHITENOISE_MANIFEST_STRICT = False
