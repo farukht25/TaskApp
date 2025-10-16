@@ -159,61 +159,74 @@ function Tasks() {
 
       {/* Filters */}
       <div className="card p-3 mb-3">
-        <div className="row g-2">
+        <h5 className="mb-3">Filters</h5>
+        <div className="row g-3 align-items-end">
           <div className="col-md-2">
+            <label htmlFor="filter-status" className="form-label">Status</label>
             <select
+              id="filter-status"
               className="form-select"
               value={filters.status}
               onChange={(e) => setFilters({ ...filters, status: e.target.value })}
             >
-              <option value="">All Statuses</option>
+              <option value="">All</option>
               <option value="pending">Pending</option>
               <option value="in-progress">In Progress</option>
               <option value="completed">Completed</option>
             </select>
           </div>
           <div className="col-md-2">
+            <label htmlFor="filter-priority" className="form-label">Priority</label>
             <select
+              id="filter-priority"
               className="form-select"
               value={filters.priority}
               onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
             >
-              <option value="">All Priorities</option>
+              <option value="">All</option>
               <option value="low">Low</option>
               <option value="medium">Medium</option>
               <option value="high">High</option>
             </select>
           </div>
           <div className="col-md-2">
+            <label htmlFor="filter-due-after" className="form-label">Due After</label>
             <input
+              id="filter-due-after"
               type="date"
               className="form-control"
-              placeholder="Due after"
               value={filters.due_after}
               onChange={(e) => setFilters({ ...filters, due_after: e.target.value })}
             />
           </div>
           <div className="col-md-2">
+            <label htmlFor="filter-due-before" className="form-label">Due Before</label>
             <input
+              id="filter-due-before"
               type="date"
               className="form-control"
-              placeholder="Due before"
               value={filters.due_before}
               onChange={(e) => setFilters({ ...filters, due_before: e.target.value })}
             />
           </div>
           <div className="col-md-3">
+            <label htmlFor="filter-search" className="form-label">Search (title/description)</label>
             <input
+              id="filter-search"
               type="text"
               className="form-control"
-              placeholder="Search title/description"
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
             />
           </div>
           <div className="col-md-1 d-grid">
-            <button className="btn btn-secondary" onClick={() => setFilters({ status: "", priority: "", search: "", due_after: "", due_before: "" })}>
-              Reset
+            <button
+              type="button"
+              className="btn btn-secondary"
+              aria-label="Clear all filters"
+              onClick={() => setFilters({ status: "", priority: "", search: "", due_after: "", due_before: "" })}
+            >
+              Clear
             </button>
           </div>
         </div>

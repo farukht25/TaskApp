@@ -112,9 +112,18 @@ def auth_register(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def auth_login(request):
-    username = request.data.get('username')
+    raw_ident = (request.data.get('username') or "").strip()
     password = request.data.get('password')
-    user = authenticate(username=username, password=password)
+    # Try username first
+    user = authenticate(username=raw_ident, password=password)
+    # Fallback: allow email as identifier
+    if not user:
+        try:
+            candidate = User.objects.filter(email__iexact=raw_ident).first()
+            if candidate:
+                user = authenticate(username=candidate.username, password=password)
+        except Exception:
+            user = None
 
     if user:
         tokens = get_tokens_for_user(user)

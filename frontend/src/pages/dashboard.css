@@ -1,0 +1,39 @@
+.dashboard {
+  background: linear-gradient(180deg, #f6f9fc 0%, #f1f4f8 100%);
+}
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: saturate(180%) blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+}
+.soft-card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid #eef1f4;
+}
+.pill {
+  background: #fff;
+  border: 1px solid #eef1f4;
+  border-radius: 999px;
+  padding: 10px 14px;
+}
+.avatar-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #1d3557;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+.recent-item {
+  background: #fff;
+  border: 1px solid #eef1f4;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+

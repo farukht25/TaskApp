@@ -31,6 +31,19 @@ function App() {
       .finally(() => setLoading(false)); // stop loading once done
   }, []);
 
+  // Periodic access-token refresh using refresh cookie to keep sessions and SSE alive
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const id = setInterval(() => {
+      axios
+        .post("auth/refresh/")
+        .catch((err) => {
+          console.warn("Background refresh failed", err?.response?.status);
+        });
+    }, 4 * 60 * 1000); // every 4 minutes
+    return () => clearInterval(id);
+  }, [isAuthenticated]);
+
   const handleLogout = () => {
     axios.post("signout/").finally(() => {
       setIsAuthenticated(false);

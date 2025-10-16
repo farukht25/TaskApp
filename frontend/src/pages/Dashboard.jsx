@@ -1,6 +1,8 @@
 // src/pages/Dashboard.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { listTasks } from "../api/tasks";
+import axios from "../api/axios";
+import "./dashboard.css";
 // Chart.js integration
 import {
   Chart as ChartJS,
@@ -35,6 +37,7 @@ function Dashboard() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [user, setUser] = useState(null);
 
   const load = async () => {
     try {
@@ -51,6 +54,14 @@ function Dashboard() {
 
   useEffect(() => {
     load();
+  }, []);
+
+  // Fetch current user for a friendly greeting
+  useEffect(() => {
+    axios
+      .get("user/me/")
+      .then((res) => setUser(res.data))
+      .catch(() => setUser(null));
   }, []);
 
   // Subscribe to SSE and refresh metrics when tasks change
@@ -80,6 +91,23 @@ function Dashboard() {
   }, [tasks, todayStr, weekFromNowStr]);
 
   const maxStatus = Math.max(stats.pending, stats["in-progress"], stats.completed, 1);
+
+  // Weekly activity (based on updated_at) for the last 7 days
+  const days = [...Array(7)].map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return d;
+  });
+  const dayLabels = days.map((d) => d.toLocaleDateString(undefined, { weekday: "short" }));
+  const dayKeys = days.map((d) => d.toISOString().slice(0, 10));
+  const weeklyCounts = useMemo(() => {
+    const map = Object.fromEntries(dayKeys.map((k) => [k, 0]));
+    (tasks || []).forEach((t) => {
+      const d = new Date(t.updated_at).toISOString().slice(0, 10);
+      if (map[d] !== undefined) map[d] += 1;
+    });
+    return dayKeys.map((k) => map[k]);
+  }, [tasks]);
 
   // Chart datasets
   const statusBarData = {
@@ -122,50 +150,155 @@ function Dashboard() {
     plugins: { legend: { position: "bottom" }, title: { display: true, text: "Due Overview" } },
   };
 
-  return (
-    <div className="container py-4">
-      <h2 className="mb-3">Dashboard</h2>
-      {loading && <p>Loading...</p>}
-      {error && <p className="text-danger">{error}</p>}
+  const weeklyData = {
+    labels: dayLabels,
+    datasets: [
+      {
+        label: "Updates",
+        data: weeklyCounts,
+        backgroundColor: dayLabels.map((_, i) => (i === 4 ? "#2a9d8f" : "#d0d6dc")),
+        borderRadius: 8,
+      },
+    ],
+  };
+  const weeklyOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false }, title: { display: true, text: "Weekly Activity" } },
+    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+  };
 
+  // Today tasks list (compact)
+  const todayTasks = useMemo(
+    () => (tasks || []).filter((t) => t.due_date === todayStr).slice(0, 6),
+    [tasks, todayStr]
+  );
+
+  return (
+    <div className="container-fluid p-3 p-md-4 dashboard">
       <div className="row g-3">
-        <div className="col-md-4">
-          <div className="card p-3 h-100">
-            <h5>Overview</h5>
-            <div className="display-6">{stats.total}</div>
-            <div className="text-muted">Total Tasks</div>
-          </div>
-        </div>
-        <div className="col-md-4">
-          <div className="card p-3 h-100">
-            <h5>Due</h5>
-            <div className="d-flex gap-4">
+        {/* Main column */}
+        <div className="col-lg-8">
+          <div className="glass p-3 p-md-4 mb-3">
+            <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
               <div>
-                <div className="h3">{stats.dueToday}</div>
-                <div className="text-muted">Today</div>
+                <div className="text-muted small">Welcome back</div>
+                <h3 className="m-0">{user?.username || "Teammate"}</h3>
               </div>
-              <div>
-                <div className="h3">{stats.dueThisWeek}</div>
-                <div className="text-muted">This Week</div>
+              <div style={{ maxWidth: 260 }} className="w-100 w-sm-auto">
+                <input className="form-control" placeholder="Search tasks" />
               </div>
             </div>
           </div>
-        </div>
-        <div className="col-md-4">
-          <div className="card p-3 h-100" style={{ minHeight: 280 }}>
-            <div style={{ height: 220 }}>
-              <Bar data={statusBarData} options={statusBarOptions} />
+
+          <div className="row g-3 mb-3">
+            <div className="col-md-4">
+              <div className="soft-card p-3">
+                <div className="fw-semibold mb-1">Pending</div>
+                <div className="display-6">{stats.pending}</div>
+                <div className="progress" style={{ height: 6 }}>
+                  <div className="progress-bar bg-warning" style={{ width: `${(stats.pending / Math.max(stats.total, 1)) * 100}%` }} />
+                </div>
+              </div>
+            </div>
+            <div className="col-md-4">
+              <div className="soft-card p-3">
+                <div className="fw-semibold mb-1">In Progress</div>
+                <div className="display-6">{stats["in-progress"]}</div>
+                <div className="progress" style={{ height: 6 }}>
+                  <div className="progress-bar bg-info" style={{ width: `${(stats["in-progress"] / Math.max(stats.total, 1)) * 100}%` }} />
+                </div>
+              </div>
+            </div>
+            <div className="col-md-4">
+              <div className="soft-card p-3">
+                <div className="fw-semibold mb-1">Completed</div>
+                <div className="display-6">{stats.completed}</div>
+                <div className="progress" style={{ height: 6 }}>
+                  <div className="progress-bar bg-success" style={{ width: `${(stats.completed / Math.max(stats.total, 1)) * 100}%` }} />
+                </div>
+              </div>
             </div>
           </div>
+
+          <div className="soft-card p-3 p-md-4 mb-3">
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <h5 className="m-0">Today</h5>
+              <span className="badge bg-secondary">{todayTasks.length}</span>
+            </div>
+            {todayTasks.length === 0 ? (
+              <div className="text-muted">No tasks due today.</div>
+            ) : (
+              <div className="d-flex flex-column gap-2">
+                {todayTasks.map((t) => (
+                  <div key={t.id} className="pill d-flex align-items-center justify-content-between">
+                    <div className="d-flex flex-column">
+                      <span className="fw-semibold">{t.title}</span>
+                      <span className="small text-muted">{t.priority} • {t.status}</span>
+                    </div>
+                    <span className="badge text-bg-light border">Due today</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-        <div className="col-md-4">
-          <div className="card p-3 h-100" style={{ minHeight: 280 }}>
-            <div style={{ height: 220 }}>
-              <Doughnut data={dueDoughnutData} options={dueDoughnutOptions} />
+
+        {/* Side column */}
+        <div className="col-lg-4">
+          <div className="soft-card p-3 mb-3">
+            <div className="d-flex align-items-center gap-3">
+              <div className="avatar-circle">{(user?.username || "U").charAt(0).toUpperCase()}</div>
+              <div>
+                <div className="fw-semibold">{user?.username || "User"}</div>
+                <div className="text-muted small">{user?.is_superuser ? "Administrator" : "Member"}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="soft-card p-3 mb-3" style={{ minHeight: 260 }}>
+            <div style={{ height: 200 }}>
+              <Bar data={weeklyData} options={weeklyOptions} />
+            </div>
+          </div>
+
+          <div className="row g-3 mb-3">
+            <div className="col-6">
+              <div className="soft-card p-3 text-center">
+                <div className="h3 m-0">{stats.total}</div>
+                <div className="text-muted small">Total</div>
+              </div>
+            </div>
+            <div className="col-6">
+              <div className="soft-card p-3 text-center">
+                <div className="h3 m-0">{stats.dueThisWeek}</div>
+                <div className="text-muted small">Due this week</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="soft-card p-3">
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <h6 className="m-0">Recent activity</h6>
+            </div>
+            <div className="d-flex flex-column gap-2">
+              {(tasks || [])
+                .slice()
+                .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+                .slice(0, 5)
+                .map((t) => (
+                  <div key={t.id} className="recent-item">
+                    <div className="small fw-semibold">{t.title}</div>
+                    <div className="small text-muted">Updated {new Date(t.updated_at).toLocaleString()}</div>
+                  </div>
+                ))}
             </div>
           </div>
         </div>
       </div>
+
+      {loading && <div className="text-muted mt-2">Loading…</div>}
+      {error && <div className="text-danger mt-2">{error}</div>}
     </div>
   );
 }
