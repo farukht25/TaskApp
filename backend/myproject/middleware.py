@@ -32,7 +32,7 @@ class JWTAuthCookieMiddleware(MiddlewareMixin):
         # Only inject if token parses successfully (avoids raising in AllowAny views)
         if AccessToken is not None:
             try:
-                AccessToken(token)  # parse/validate expiry
+                AccessToken(token)  
             except Exception:
                 return None
 

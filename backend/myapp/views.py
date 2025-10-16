@@ -82,7 +82,7 @@ def signout(request):
     return resp
 
 
-# Challenge-spec aliases under /api/auth/
+# 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def auth_register(request):
@@ -155,8 +155,7 @@ def current_user(request):
 
 
 def _set_auth_cookies(resp, access_token: str, refresh_token: str):
-    # For localhost dev (same-site), use Lax and not Secure.
-    # In production over HTTPS and potentially cross-site, use SameSite=None and Secure=True.
+
     cookie_kwargs = {
         'httponly': True,
         'samesite': 'Lax',

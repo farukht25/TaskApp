@@ -6,6 +6,13 @@ from datetime import timedelta
 # BASE DIRECTORIES
 # -------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from a .env file at project root (optional)
+try:
+    from dotenv import load_dotenv  # type: ignore
+    load_dotenv(os.path.join(BASE_DIR, ".env"))
+except Exception:
+    pass
 TEMP_DIR = os.path.join(BASE_DIR, "templates")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 MEDIA_DIR = os.path.join(BASE_DIR, "media")
@@ -13,7 +20,7 @@ MEDIA_DIR = os.path.join(BASE_DIR, "media")
 # -------------------------------------------------
 # SECURITY
 # -------------------------------------------------
-SECRET_KEY = "django-insecure-s0eg9q5^i%wy4n5m78yvbpwkb3j3j)w8nx=pr&c6+ag8ltvs5t"
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-insecure-change-me")
 DEBUG = True
 ALLOWED_HOSTS = ['*']
 
