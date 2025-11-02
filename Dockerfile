@@ -2,7 +2,8 @@ FROM node:20-alpine AS fe-build
 WORKDIR /app/frontend
 
 COPY frontend/package*.json ./
-RUN npm ci --no-audit --no-fund
+# Use npm install to reconcile lockfile differences in container
+RUN npm install --no-audit --no-fund
 COPY frontend/ .
 
 # Build SPA with same-origin API
