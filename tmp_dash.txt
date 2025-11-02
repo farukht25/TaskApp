@@ -4,8 +4,6 @@ import { listTasks } from "../api/tasks";
 import axios from "../api/axios";
 import { API_BASE } from "../api/axios";
 import "./dashboard.css";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { log } from "../utils/logger";
 // Chart.js integration
 import {
   Chart as ChartJS,
@@ -41,18 +39,6 @@ function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [user, setUser] = useState(null);
-  useEffect(() => {
-    log("dashboard_mount", {});
-    return () => log("dashboard_unmount", {});
-  }, []);
-
-  const queryClient = useQueryClient();
-  const { data } = useQuery({
-    queryKey: ["tasks_all"],
-    queryFn: async () => listTasks({ limit: 1000 }),
-    initialData: [],
-  });
-  useEffect(() => { setTasks(data || []); }, [data]);
 
   const load = async () => {
     try {
@@ -67,17 +53,36 @@ function Dashboard() {
     }
   };
 
-  useEffect(() => {}, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   // Fetch current user for a friendly greeting
   useEffect(() => {
     axios
       .get("user/me/")
       .then((res) => setUser(res.data))
-      .catch((err) => { setUser(null); log("user_me_fail", { status: err?.response?.status }); });
+      .catch(() => setUser(null));
   }, []);
 
-  // Subscribe to SSE and update cache\n  useEffect(() => {\n    const url = `${API_BASE}tasks/stream/`;\n    const es = new EventSource(url, { withCredentials: true });\n    log("sse_open_dashboard", {});\n    es.onmessage = (e) => {\n      try {\n        const payload = JSON.parse(e.data);\n        if (payload && Array.isArray(payload.tasks)) {\n          queryClient.setQueryData(["tasks_all"], payload.tasks);\n          setTasks(payload.tasks);\n          return;\n        }\n      } catch (_) {}\n      // no invalidate; SSE keeps cache fresh\n    };\n    es.onerror = () => { log("sse_error_dashboard", {}); };\n    return () => { es.close(); log("sse_close_dashboard", {}); };\n  }, [queryClient]);
+  // Subscribe to SSE and refresh metrics when tasks change
+  useEffect(() => {
+    const url = `${API_BASE}tasks/stream/`;
+    const es = new EventSource(url, { withCredentials: true });
+    es.onmessage = (e) => {
+      try {
+        const payload = JSON.parse(e.data);
+        if (payload && Array.isArray(payload.tasks)) {
+          setTasks(payload.tasks);
+          return;
+        }
+      } catch (_) {}
+      // Fallback: reload if message wasn’t JSON payload
+      load();
+    };
+    es.onerror = () => {};
+    return () => es.close();
+  }, []);
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const weekFromNowStr = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000)
@@ -310,5 +315,3 @@ function Dashboard() {
 }
 
 export default Dashboard;
-
-

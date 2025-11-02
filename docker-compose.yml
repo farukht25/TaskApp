@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: taskapp-backend
+    ports:
+      - "8000:8000"
+    environment:
+      DJANGO_DEBUG: "true"
+      DJANGO_LOG_LEVEL: "DEBUG"
+      DJANGO_ALLOWED_HOSTS: "*"
+      CORS_ALLOWED_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173"
+      SQLITE_PATH: "/app/var/db.sqlite3"
+    volumes:
+      - backend_var:/app/var
+      - backend_media:/app/media
+      - logs:/logs
+    command: >-
+      sh -c "python manage.py migrate && \
+             python manage.py collectstatic --noinput && \
+             gunicorn myproject.wsgi --bind 0.0.0.0:8000 --workers 2 --timeout 120 --access-logfile -"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Optional: baked into build for axios base URL. Defaults to localhost if unset.
+        VITE_API_BASE: "http://localhost:8000/"
+    container_name: taskapp-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    volumes:
+      - logs:/var/log/nginx
+
+volumes:
+  backend_var:
+  backend_media:
+  logs:

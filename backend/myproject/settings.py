@@ -1,6 +1,10 @@
 from pathlib import Path
 import os
 from datetime import timedelta
+try:
+    import dj_database_url  # type: ignore
+except Exception:
+    dj_database_url = None
 
 # -------------------------------------------------
 # BASE DIRECTORIES
@@ -16,6 +20,20 @@ except Exception:
 TEMP_DIR = os.path.join(BASE_DIR, "templates")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 MEDIA_DIR = os.path.join(BASE_DIR, "media")
+VAR_DIR = os.path.join(BASE_DIR, "var")
+try:
+    os.makedirs(VAR_DIR, exist_ok=True)
+except Exception:
+    pass
+LOG_DIR = os.environ.get("LOG_DIR", "/logs/backend")
+try:
+    os.makedirs(LOG_DIR, exist_ok=True)
+except Exception:
+    try:
+        os.makedirs(os.path.join(VAR_DIR, "log"), exist_ok=True)
+        LOG_DIR = os.path.join(VAR_DIR, "log")
+    except Exception:
+        LOG_DIR = VAR_DIR
 
 # -------------------------------------------------
 # SECURITY
@@ -56,6 +74,7 @@ MIDDLEWARE = [
     "myproject.middleware.JWTAuthCookieMiddleware",  # inject Authorization from access cookie
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "myproject.middleware.AccessLogMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -89,12 +108,21 @@ WSGI_APPLICATION = "myproject.wsgi.application"
 # -------------------------------------------------
 # DATABASE
 # -------------------------------------------------
+# Database: prefer DATABASE_URL (Heroku/Postgres), else SQLite
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": os.environ.get("SQLITE_PATH", BASE_DIR / "db.sqlite3"),
     }
 }
+
+_db_url = os.environ.get("DATABASE_URL")
+if _db_url and dj_database_url is not None:
+    DATABASES["default"] = dj_database_url.parse(
+        _db_url,
+        conn_max_age=600,
+        ssl_require=not DEBUG,
+    )
 
 # -------------------------------------------------
 # PASSWORD VALIDATION
@@ -174,3 +202,85 @@ if not DEBUG:
     }
     # Keep non-strict in case third-party assets reference optional maps
     WHITENOISE_MANIFEST_STRICT = False
+
+# -------------------------------------------------
+# CACHING
+# -------------------------------------------------
+_cache_dir = os.environ.get("DJANGO_CACHE_DIR", os.path.join(VAR_DIR, "django_cache"))
+try:
+    os.makedirs(_cache_dir, exist_ok=True)
+except Exception:
+    pass
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": _cache_dir,
+        "TIMEOUT": 300,
+        "OPTIONS": {
+            "MAX_ENTRIES": 10000,
+        },
+    }
+}
+
+# -------------------------------------------------
+# LOGGING
+# -------------------------------------------------
+LOG_LEVEL = os.environ.get("DJANGO_LOG_LEVEL", "INFO").upper()
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "%(asctime)s %(levelname)s [%(name)s] %(message)s",
+        },
+        "brief": {
+            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(LOG_DIR, "app.log"),
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 3,
+            "formatter": "brief",
+        },
+    },
+    "root": {
+        "handlers": ["console", "file"],
+        "level": LOG_LEVEL,
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console", "file"],
+            "level": LOG_LEVEL,
+            "propagate": True,
+        },
+        "myproject": {
+            "handlers": ["console", "file"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "myapp": {
+            "handlers": ["console", "file"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "myapp.api": {
+            "handlers": ["console", "file"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "myapp.client": {
+            "handlers": ["console", "file"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+    },
+}

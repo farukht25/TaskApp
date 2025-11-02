@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signup } from "../api/auth";
+import { log } from "../utils/logger";
 
 const Signup = () => {
   const [form, setForm] = useState({
@@ -18,11 +19,13 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      log("signup_submit", { username: form.username });
       const res = await signup(form);
       console.log(res.data);
       alert("Signup successful! You are now logged in.");
       // Cookies are set by backend; go to tasks
       navigate("/tasks");
+      log("signup_ok", {});
     } catch (err) {
       console.error(err.response?.data);
       alert(
@@ -30,6 +33,7 @@ const Signup = () => {
           (err.response?.data.error ||
             Object.values(err.response?.data).join(", "))
       );
+      log("signup_fail", { error: String(err?.response?.data || err) });
     }
   };
 

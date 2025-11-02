@@ -35,3 +35,11 @@ class Task(models.Model):
     def __str__(self):
         return f"{self.title} ({self.status}, {self.priority})"
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["owner", "updated_at"], name="task_owner_updated_idx"),
+            models.Index(fields=["status"], name="task_status_idx"),
+            models.Index(fields=["priority"], name="task_priority_idx"),
+            models.Index(fields=["due_date"], name="task_due_idx"),
+            models.Index(fields=["updated_at"], name="task_updated_idx"),
+        ]

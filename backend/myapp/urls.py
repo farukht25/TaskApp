@@ -13,4 +13,5 @@ urlpatterns = [
     path('tasks/', views.tasks, name='tasks'),
     path('tasks/<int:pk>/', views.task_detail, name='task_detail'),
     path('tasks/stream/', views.tasks_stream, name='tasks_stream'),
+    path('client-log/', views.client_log, name='client_log'),
 ]

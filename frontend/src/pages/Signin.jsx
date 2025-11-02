@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../api/axios";
+import { log } from "../utils/logger";
 
 function SignIn({ setAuth }) {
   const [username, setUsername] = useState("");
@@ -11,13 +12,16 @@ function SignIn({ setAuth }) {
   const handleLogin = async (e) => {
   e.preventDefault();
   try {
+    log("signin_submit", { username });
     const res = await axios.post("auth/login/", { username, password });
 
     setAuth(true);
     navigate("/tasks");
+    log("signin_ok", {});
   } catch (err) {
     console.error(err);
     alert(err.response?.data?.error || "Login failed");
+    log("signin_fail", { status: err?.response?.status });
   }
 };
 

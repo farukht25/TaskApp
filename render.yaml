@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: taskapp
+    env: docker
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /
+    # Render injects PORT; our Dockerfile binds to 0.0.0.0:$PORT
+    envVars:
+      - key: DJANGO_DEBUG
+        value: false
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_ALLOWED_HOSTS
+        value: .onrender.com
+      # Optional: Use Postgres for persistence (recommended). Create a Render Postgres
+      # and add its connection string here; otherwise SQLite is ephemeral across deploys.
+      # - key: DATABASE_URL
+      #   fromDatabase:
+      #     name: taskapp-db
+      #     property: connectionString
+
+# Optional managed Postgres (uncomment to provision via render.yaml)
+# databases:
+#   - name: taskapp-db
+#     plan: free
+

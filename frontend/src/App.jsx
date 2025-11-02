@@ -1,6 +1,7 @@
 // src/app.jsx
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from "react-router-dom";
+import RouteLogger from "./RouteLogger";
 import axios from "./api/axios";
 import Home from "./pages/Home";
 import Tasks from "./pages/Tasks";
@@ -45,10 +46,15 @@ function App() {
   }, [isAuthenticated]);
 
   const handleLogout = () => {
+    // Optimistically update UI and navigate; server will clear cookies
+    setIsAuthenticated(false);
+    setCurrentUserId(null);
+    setIsSuperUser(false);
     axios.post("signout/").finally(() => {
-      setIsAuthenticated(false);
-      setCurrentUserId(null);
-      setIsSuperUser(false);
+      try {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+      } catch (_) {}
       window.location.href = "/";
     });
   };
@@ -57,6 +63,7 @@ function App() {
 
   return (
     <Router>
+      <RouteLogger />
       {/* Header */}
       <div
         style={{
@@ -71,8 +78,8 @@ function App() {
 
         {isAuthenticated && (
           <div style={{ display: "flex", gap: "10px" }}>
-            <button
-              onClick={() => (window.location.href = "/tasks")}
+            <Link to="/tasks">
+              <button
               style={{
                 padding: "8px 14px",
                 backgroundColor: "#1d3557",
@@ -82,11 +89,12 @@ function App() {
                 cursor: "pointer",
               }}
             >
-              Tasks
-            </button>
+                Tasks
+              </button>
+            </Link>
 
-            <button
-              onClick={() => (window.location.href = "/dashboard")}
+            <Link to="/dashboard">
+              <button
               style={{
                 padding: "8px 14px",
                 backgroundColor: "#6c757d",
@@ -96,8 +104,9 @@ function App() {
                 cursor: "pointer",
               }}
             >
-              Dashboard
-            </button>
+                Dashboard
+              </button>
+            </Link>
             {/* Django Admin button removed */}
             <button
               onClick={handleLogout}
