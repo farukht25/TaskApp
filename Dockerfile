@@ -40,4 +40,4 @@ COPY --from=fe-build /app/frontend/dist/assets /app/static/assets
 RUN python manage.py collectstatic --noinput
 
 # Start the app (Render/Cloud Run set $PORT). Run migrations before Gunicorn.
-CMD ["sh", "-c", "python manage.py migrate && gunicorn myproject.wsgi --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120"]
+CMD ["sh", "-c", "python manage.py migrate && python manage.py createsuperuser --noinput || true && gunicorn myproject.wsgi --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120"]

@@ -13,6 +13,14 @@ services:
         generateValue: true
       - key: DJANGO_ALLOWED_HOSTS
         value: .onrender.com
+      # Auto-create admin on first boot (Dockerfile runs createsuperuser --noinput)
+      - key: DJANGO_SUPERUSER_USERNAME
+        value: admin
+      - key: DJANGO_SUPERUSER_EMAIL
+        value: admin@example.com
+      - key: DJANGO_SUPERUSER_PASSWORD
+        # Set a strong password in the Render dashboard after first deploy
+        sync: false
       # Optional: Use Postgres for persistence (recommended). Create a Render Postgres
       # and add its connection string here; otherwise SQLite is ephemeral across deploys.
       # - key: DATABASE_URL
@@ -24,4 +32,3 @@ services:
 # databases:
 #   - name: taskapp-db
 #     plan: free
-
