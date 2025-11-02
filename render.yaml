@@ -15,9 +15,9 @@ services:
         value: .onrender.com
       # Auto-create admin on first boot (Dockerfile runs createsuperuser --noinput)
       - key: DJANGO_SUPERUSER_USERNAME
-        value: admin
+        value: Admin
       - key: DJANGO_SUPERUSER_EMAIL
-        value: admin@example.com
+        value: Admin@mail.com
       - key: DJANGO_SUPERUSER_PASSWORD
         # Set a strong password in the Render dashboard after first deploy
         sync: false
