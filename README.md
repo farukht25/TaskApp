@@ -1,142 +1,80 @@
-# Task Manager (React + Django)
+# TaskApp — Django + React (Render Deployment)
 
-Collaborative task management app with JWT auth (HttpOnly cookies), real‑time updates via SSE, Kanban drag‑and‑drop, and a dashboard.
+TaskApp is a Django REST API with a React SPA (Vite). The repository is configured to build a single Docker image that serves both the frontend and backend from one service. The recommended hosting is Render (free plan supported).
 
-## Stack
+## Features
+- Authentication & Authorization
+  - Signup (`/auth/register/`) and Login (`/auth/login/`)
+  - Logout (`/signout/`) clears HttpOnly cookies
+  - JWT (SimpleJWT) with HttpOnly cookies for access/refresh
+  - Background token refresh endpoint (`/auth/refresh/`)
+  - Admin site at `/admin/` (Django admin, superuser required)
+- Cookies & Security
+  - Access/Refresh tokens stored as HttpOnly cookies (no JS access)
+  - Production cookie settings: `Secure=True`, `SameSite=None` (HTTPS on Render)
+  - CORS configured only when needed (same‑origin by default in container)
+- Tasks API & Realtime
+  - CRUD Tasks (`/tasks/`, `/tasks/<id>/`)
+  - Filtering and search (status, priority, due dates, text)
+  - Server‑Sent Events (`/tasks/stream/`) for live updates
+- Frontend (React + Vite)
+  - Local filtering (instant) over a cached task list
+  - React Query caching and deduplication
+  - Drag‑and‑drop Kanban columns (Pending / In Progress / Completed)
+  - Dashboard with charts (Chart.js) and recent activity
+  - Virtualized list (react‑window) when many rows for fast rendering
+- Production build & Serving
+  - SPA bundled into the backend image and served by Django + WhiteNoise
+  - SPA fallback route for non‑API paths
+  - Single‑container deployment via `render.yaml`
 
-- Backend: Django, Django REST Framework, SimpleJWT, CORS Headers
-- Frontend: React (Vite), React Router, Axios, Bootstrap, Chart.js
+## Demo Login
+- Username: `user`
+- Password: `user`
+- Where: use on the app's login page (SPA) or POST `/auth/login/`
+- Note: demo-only credentials — do not use in production
 
-## Quick Start
+## Deploy on Render (one container)
+1) Push this repo to GitHub/GitLab.
+2) In Render, click New → Blueprint and select your repo. Render will detect `render.yaml`.
+3) On first deploy, set required environment variables in Render → your service → Environment:
+   - `DJANGO_SECRET_KEY` — set a strong secret
+   - `DJANGO_SUPERUSER_USERNAME` — default: `Admin` (render.yaml)
+   - `DJANGO_SUPERUSER_EMAIL` — default: `Admin@mail.com` (render.yaml)
+   - `DJANGO_SUPERUSER_PASSWORD` — set a strong password (not in git)
+   - `DJANGO_ALLOWED_HOSTS` — defaults to `.onrender.com` (ok for Render URL)
+   - Optional: `DATABASE_URL` — if you attach a Postgres (recommended). Without it, SQLite is ephemeral.
+4) Create service. Render builds the Dockerfile and starts the app.
 
-### Backend
+Notes
+- The Dockerfile builds the React SPA and copies it into Django. The app listens on `$PORT` provided by Render.
+- The container’s CMD includes `python manage.py migrate && python manage.py createsuperuser --noinput || true` so the admin user is auto-created on first boot using the three `DJANGO_SUPERUSER_*` env vars.
+- For persistence, add a Render Postgres and supply `DATABASE_URL`. Otherwise, SQLite will reset on redeploys.
 
-1) Create and activate a virtualenv
+## Local Development (optional)
+- With Docker:
+  - `docker compose up --build`
+  - Backend: http://localhost:8000
+  - Frontend (Nginx static): http://localhost:5173 (if you use the separate frontend container)
+- Or run directly:
+  - Backend: create venv, `pip install -r backend/requirements.txt`, `python backend/manage.py runserver`
+  - Frontend: `cd frontend && npm install && npm run dev`
 
-```
-cd backend
-python -m venv venv
-venv\Scripts\activate
-```
+## Environment Variables
+- `DJANGO_SECRET_KEY` (required in prod)
+- `DJANGO_DEBUG` (`false` in prod)
+- `DJANGO_ALLOWED_HOSTS` (e.g., `.onrender.com`)
+- `DATABASE_URL` (optional; Postgres connection string)
+- `CORS_ALLOWED_ORIGINS` (if you serve frontend on a different domain; not needed for same-origin)
+- `DJANGO_SUPERUSER_USERNAME`, `DJANGO_SUPERUSER_EMAIL`, `DJANGO_SUPERUSER_PASSWORD` (auto-create admin on first boot)
 
-2) Configure environment
+## SPA Routing
+- Non-API routes fall back to `templates/index.html` (see `backend/myproject/urls.py`). API endpoints keep their paths (e.g., `/auth/login/`, `/tasks/`). Static assets are served under `/static/assets/` by WhiteNoise.
 
-Copy the example env and set a strong secret key:
+## Troubleshooting
+- 401 on login in Render: ensure the admin user exists (auto-create on boot) or register a user via `/auth/register/`.
+- "key is not defined" in frontend: all server filter code has been removed; ensure you’re running the latest build and hard-refresh the browser (disable cache in DevTools).
+- Build errors in fe-build stage: we intentionally use `npm install` in Docker to reconcile lockfile changes.
 
-```
-copy backend\.env.example backend\.env
-# then edit backend\.env and set DJANGO_SECRET_KEY
-```
-
-3) Install requirements
-
-```
-pip install -r requirements.txt
-```
-
-4) Migrate and run
-
-```
-python manage.py migrate
-python manage.py runserver
-```
-
-Backend runs at `http://127.0.0.1:8000/`.
-
-### Frontend
-
-```
-cd frontend
-npm ci   # or: npm install
-npm run dev
-```
-
-Frontend runs at `http://localhost:5173/`.
-
-Set the API base for production builds:
-
-```
-# frontend/.env
-VITE_API_BASE=https://your-backend.example.com/
-```
-
-## Auth Model
-
-- JWT access and refresh tokens are set as HttpOnly cookies on login/register.
-- A lightweight middleware maps the `access` cookie to an `Authorization: Bearer` header for DRF.
-- `POST /auth/refresh/` refreshes the access token using the `refresh` cookie.
-
-Dev cookie notes:
-- For localhost dev (same site), cookies use `SameSite=Lax; Secure=False`.
-- If you serve FE/BE on different origins or HTTPS, set `SameSite=None; Secure=True` and ensure CORS is configured.
-
-## Endpoints
-
-- Auth
-  - `POST /auth/register/` → create user, set cookies
-  - `POST /auth/login/` → login, set cookies
-  - `POST /auth/refresh/` → refresh access cookie
-  - `POST /signout/` → clear cookies
-  - `GET /user/me/` → current user profile
-
-- Tasks
-  - `GET /tasks/` → list (admins: all, users: own) with filters: `status`, `priority`, `due_before`, `due_after`, `search`
-  - `POST /tasks/` → create (owner = current user)
-  - `GET /tasks/{id}/`, `PUT /tasks/{id}/`, `DELETE /tasks/{id}/`
-  - `GET /tasks/stream/` → Server‑Sent Events (SSE) live updates
-
-## Frontend Features
-
-- Auth: Sign up, Sign in, redirect if unauthenticated
-- Tasks: Table + filters, overdue highlighting, CRUD
-- Kanban: Drag cards across Pending/In‑Progress/Completed to update status
-- Dashboard: Status bar chart + Due doughnut chart (Chart.js)
-- Real‑time: Auto refresh Tasks/Dashboard on SSE updates
-
-## Configuration
-
-- CORS (backend/myproject/settings.py):
-  - `CORS_ALLOW_CREDENTIALS = True`
-  - Add your frontend origin(s) to `CORS_ALLOWED_ORIGINS` (e.g., `http://localhost:5173`)
-- Cookies:
-  - Adjust `_set_auth_cookies` in `backend/myapp/views.py` for `SameSite`/`Secure` based on environment
-
-## Optional (Pin Dependencies)
-
-We include `backend/requirements.in` with minimal deps. To produce a fully pinned `requirements.txt` using pip‑tools:
-
-```
-pip install pip-tools
-pip-compile backend/requirements.in -o backend/requirements.txt
-```
-
-## Production Notes
-
-- Use a production WSGI/ASGI server (e.g., Gunicorn/Daphne + reverse proxy)
-- Serve over HTTPS and set cookies to `SameSite=None; Secure=True`
-- Harden CORS to exact origins
-- Consider Redis + Django Channels for WebSockets (if needed)
-
-## Deploy (Render + Netlify)
-
-Backend (Render):
-- Create a new Web Service from the `backend` folder.
-- Environment: Python 3.x
-- Build command:
-  - `pip install -r backend/requirements.txt && python backend/manage.py collectstatic --noinput && python backend/manage.py migrate`
-- Start command:
-  - `cd backend && gunicorn myproject.wsgi --workers=2 --timeout=120 --log-file -`
-- Env vars:
-  - `DJANGO_SECRET_KEY`=your-long-random
-  - `DJANGO_DEBUG`=false
-  - `DJANGO_ALLOWED_HOSTS`=<your_render_hostname>
-  - `CORS_ALLOWED_ORIGINS`=https://your-frontend-domain
-
-Frontend (Netlify/Vercel):
-- Build command: `npm run build`
-- Publish directory: `frontend/dist`
-- Env var:
-  - `VITE_API_BASE`=https://your-backend-domain/
-
-Cookie tips:
-- In production, the backend sets secure cookies if you set `DJANGO_DEBUG=false`. Ensure you are on HTTPS and that the frontend origin is listed in `CORS_ALLOWED_ORIGINS`.
+---
+This repo no longer uses Netlify/Firebase; deployment is via Render using `render.yaml`.
